@@ -1,0 +1,45 @@
+.app-container {
+  text-align: center;
+  padding: 30px;
+  font-family: "Segoe UI", sans-serif;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.form-container {
+  background: white;
+  padding: 25px;
+  margin: 0 auto;
+  width: 450px;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+input, textarea, button {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+.result {
+  text-align: left;
+  margin-top: 25px;
+}
+
+ul {
+  text-align: left;
+  margin-left: 20px;
+}
