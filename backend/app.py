@@ -52,6 +52,9 @@ def extract_text(file):
 # ---------------------------
 # API Endpoint
 # ---------------------------
+@app.route('/', methods=['GET'])
+def home():
+    return "Backend is live! POST requests should go to /analyze"
 
 @app.route("/analyze", methods=["POST"])
 def analyze_resume_endpoint():
