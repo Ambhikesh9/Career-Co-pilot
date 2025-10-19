@@ -27,7 +27,7 @@ const ResumeForm = () => {
     formData.append("jd_text", jobDescription);
 
     try {
-      const res = await axios.post("https://career-co-pilot-1.onrender.com", formData, {
+      const res = await axios.post("https://career-co-pilot-1.onrender.com/analyze", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
