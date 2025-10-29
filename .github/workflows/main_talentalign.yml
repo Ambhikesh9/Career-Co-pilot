@@ -1,29 +1,50 @@
+name: Deploy Flask + React to Azure
+
 on:
   push:
     branches:
-      - main
+      - main  # or your deploy branch
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
+      # Build React frontend
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+          cd ..
+
+      # Copy frontend build to Flask static folder (if needed)
+      - name: Move React build to backend
+        run: |
+          rm -rf backend/static || true
+          mkdir -p backend/static
+          cp -r frontend/build/* backend/static/
+
+      # Set up Python and install dependencies
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: |
           cd backend
+          python -m pip install --upgrade pip
           pip install -r requirements.txt
+          cd ..
 
-      - name: Deploy to Azure Web App
+      # Deploy to Azure Web App
+      - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: TalentAlign
+          app-name: your-app-name    # change this
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./backend
-
