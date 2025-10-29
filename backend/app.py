@@ -3,9 +3,9 @@ from werkzeug.utils import secure_filename
 import fitz  # PyMuPDF
 import docx
 from services.analyze_resume import generate_resume_analysis
-from services.refine_resume import refine_resume
-from services.extract_keywords import extract_job_keywords, extract_resume_keywords
+from services.extract_keywords import extract_all_keywords
 from flask_cors import CORS
+import traceback  # <-- ADD THIS IMPORT
 
 # ---------------------------
 # Flask App Setup
@@ -63,7 +63,7 @@ def analyze_resume_endpoint():
         else:
             return jsonify({"error": "Please provide a job description file or text."}), 400
 
-        # Limit text size to prevent memory overload
+        # Limit text size
         MAX_TEXT_LENGTH = 50000  # 50k characters
         resume_text = extract_text(resume_file)
         if len(resume_text) > MAX_TEXT_LENGTH:
@@ -71,42 +71,50 @@ def analyze_resume_endpoint():
         if len(jd_text) > MAX_TEXT_LENGTH:
             return jsonify({"error": "Job description too long"}), 400
 
-        # Extract keywords
-        job_keywords = extract_job_keywords(jd_text)
-        resume_keywords = extract_resume_keywords(resume_text)
+        # --- CONSOLIDATED API CALL 1 ---
+        print("Calling extract_all_keywords...") # Added log
+        extracted_data = extract_all_keywords(jd_text, resume_text)
+        
+        # Error handling for extraction
+        if "error" in extracted_data:
+             print(f"Error from extract_all_keywords: {extracted_data.get('raw_output')}") # Added log
+             return jsonify({"error": "Failed to parse API response for keywords.", "details": extracted_data.get("raw_output")}), 500
+        
+        job_keywords = extracted_data.get("job_keywords", {})
+        resume_keywords = extracted_data.get("resume_keywords", {})
 
-        # Generate analysis report
+        # --- API CALL 2 ---
+        print("Calling generate_resume_analysis...") # Added log
         analysis_report = generate_resume_analysis(
             raw_job_description=jd_text,
             raw_resume=resume_text,
             extracted_job_keywords=job_keywords,
             extracted_resume_keywords=resume_keywords
         )
-
-        # Generate refined resume
-        refined_resume = refine_resume(
-            raw_job_description=jd_text,
-            extracted_job_keywords=job_keywords,
-            raw_resume=resume_text,
-            extracted_resume_keywords=resume_keywords,
-            resume_analysis_report=analysis_report
-        )
-
+        
+        print("Analysis complete. Sending response.") # Added log
         return jsonify({
             "job_keywords": job_keywords,
             "resume_keywords": resume_keywords,
-            "analysis_report": analysis_report,
-            "refined_resume": refined_resume
+            "analysis_report": analysis_report
         })
 
     except ValueError as ve:
+        # --- ADDED LOGGING ---
+        print(f"--- VALUE ERROR --- \n{ve}")
+        traceback.print_exc()
+        # ---------------------
         return jsonify({"error": str(ve)}), 400
+        
     except Exception as e:
+        # --- THIS IS THE CRITICAL CHANGE ---
+        print("--- AN UNCAUGHT EXCEPTION OCCURRED ---")
+        traceback.print_exc() 
+        # -----------------------------------
         return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 # ---------------------------
 # Main
 # ---------------------------
 if __name__ == "__main__":
-    # Production-ready
     app.run(host="0.0.0.0", port=5000, debug=False)

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
-import "./ResumeForm.css";
-
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import "./ResumeForm.css"; // Make sure this file is in the same directory
 
 const ResumeForm = () => {
   const [resume, setResume] = useState(null);
@@ -9,12 +10,13 @@ const ResumeForm = () => {
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fileName, setFileName] = useState("No file chosen");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!resume || !jobDescription) {
-      alert("Please upload resume and provide job description");
+    if (!resume || !jobDescription.trim()) {
+      setError("Please upload a resume and enter a job description.");
       return;
     }
 
@@ -27,23 +29,14 @@ const ResumeForm = () => {
     formData.append("jd_text", jobDescription);
 
     try {
-      const res = await axios.post("https://career-co-pilot-production.up.railway.app/analyze", formData, {
+      const res = await axios.post("http://127.0.0.1:5000/analyze", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // Ensure arrays to prevent .map() errors
-      const safeJobKeywords = Array.isArray(res.data.job_keywords)
-        ? res.data.job_keywords
-        : [];
-      const safeResumeKeywords = Array.isArray(res.data.resume_keywords)
-        ? res.data.resume_keywords
-        : [];
-
       setResult({
-        job_keywords: safeJobKeywords,
-        resume_keywords: safeResumeKeywords,
+        job_keywords: res.data.job_keywords || {},
+        resume_keywords: res.data.resume_keywords || {},
         analysis_report: res.data.analysis_report || "",
-        refined_resume: res.data.refined_resume || "",
       });
     } catch (err) {
       console.error(err);
@@ -55,54 +48,95 @@ const ResumeForm = () => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    setResume(file);
+    setFileName(file ? file.name : "No file chosen");
+  };
+
   return (
     <div className="form-container">
-      <form onSubmit={handleSubmit}>
-        <label>Upload Resume (PDF/DOCX/TXT):</label>
-        <input
-          type="file"
-          accept=".pdf,.docx,.txt"
-          onChange={(e) => setResume(e.target.files[0])}
-        />
+      <div className="form-card">
+        <h2 className="form-title">Resume Analyzer</h2>
+        <p className="form-subtitle">
+          Upload your resume and paste the job description to get a detailed match analysis.
+        </p>
 
-        <label>Job Description:</label>
-        <textarea
-          rows="5"
-          value={jobDescription}
-          onChange={(e) => setJobDescription(e.target.value)}
-          placeholder="Paste the job description here..."
-        />
+        <form onSubmit={handleSubmit} className="resume-form">
+          {/* File Upload */}
+          <div className="input-group file-input-group">
+            <label className="input-label">Upload Resume (PDF, DOCX, TXT)</label>
+            <div className="file-upload-wrapper">
+              <input
+                type="file"
+                accept=".pdf,.docx,.txt"
+                onChange={handleFileChange}
+                id="resume-upload"
+                className="file-input"
+              />
+              <label htmlFor="resume-upload" className="file-upload-label">
+                <span className="upload-icon">📄</span>
+                Choose File
+              </label>
+              <span className="file-name">{fileName}</span>
+            </div>
+          </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Analyzing..." : "Check Match"}
-        </button>
-      </form>
+          {/* Job Description */}
+          <div className="input-group">
+            <label className="input-label">Job Description</label>
+            <textarea
+              rows="6"
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste the full job description here..."
+              className="textarea-input"
+            />
+          </div>
 
-      {error && <p style={{ color: "red" }}>{error}</p>}
+          {/* Submit Button */}
+          <button type="submit" disabled={loading} className="submit-btn">
+            {loading ? (
+              <>
+                <span className="spinner"></span>
+                Analyzing Resume...
+              </>
+            ) : (
+              "Check Match"
+            )}
+          </button>
+        </form>
 
-      {result && (
-        <div className="result">
-          <h3>Analysis Report:</h3>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{result.analysis_report}</pre>
+        {/* Error Message */}
+        {error && (
+          <div className="error-message">
+            <span className="error-icon">⚠️</span> {error}
+          </div>
+        )}
 
-          <h3>Refined Resume:</h3>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{result.refined_resume}</pre>
+        {/* Loading Progress Bar */}
+        {loading && (
+          <div className="loading-container">
+            <div className="progress-bar">
+              <div className="progress-fill"></div>
+            </div>
+            <p className="loading-text">Processing your resume and job description...</p>
+          </div>
+        )}
 
-          <h4>Job Keywords:</h4>
-          <ul>
-            {(result.job_keywords || []).map((k, i) => (
-              <li key={i}>{k}</li>
-            ))}
-          </ul>
-
-          <h4>Resume Keywords:</h4>
-          <ul>
-            {(result.resume_keywords || []).map((k, i) => (
-              <li key={i}>{k}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+        {/* Result Display */}
+        {result && !loading && (
+          <div className="result-container fade-in">
+            <h3 className="result-title">Analysis Report</h3>
+            <div className="markdown-report">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {result.analysis_report}
+              </ReactMarkdown>
+            </div>
+            </div>
+          
+        )}
+      </div>
     </div>
   );
 };
