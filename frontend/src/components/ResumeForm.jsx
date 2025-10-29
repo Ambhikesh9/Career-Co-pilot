@@ -29,7 +29,7 @@ const ResumeForm = () => {
     formData.append("jd_text", jobDescription);
 
     try {
-      const res = await axios.post("http://127.0.0.1:5000/analyze", formData, {
+      const res = await axios.post("https://talentalign-gzhqcthhgmd8apc5.southindia-01.azurewebsites.net/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
